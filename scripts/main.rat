@@ -1,0 +1,14 @@
+exec scripts/init
+
+src_vert shaders/base.vs
+src_frag shaders/gbuffer.fs
+compshader gbuffer
+
+setgroup 0 tar_layout
+setgroup 1 tar_cover
+
+loadvmf testmap.vmf
+
+depth 1
+
+render 0 

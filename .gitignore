@@ -11,6 +11,9 @@
 !*.c
 !*.h
 
+# tar script
+!*.rat
+
 # GLSL shader source files
 !*.fs
 !*.vs
@@ -23,7 +26,4 @@
 
 # It was ignoring the gitignore before lol
 !*.gitignore
-<<<<<<< HEAD
 
-=======
->>>>>>> 772ea0cc11dac68376316b422f31695f02732afc
