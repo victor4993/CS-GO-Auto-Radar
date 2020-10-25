@@ -13,6 +13,6 @@ layout (location = 2) out vec2 out_Origin;
 void main()
 {
 	out_Position = sh_FragPos * 0.001;
-	out_Normal = -normalize( sh_Normal ) * vec3(0.5) + vec3(0.5);
+	out_Normal = normalize( sh_Normal ) * vec3(0.5) + vec3(0.5);
 	out_Origin = (sh_Origin + in_Origin) * 0.001;
 }

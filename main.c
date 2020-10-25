@@ -1,6 +1,7 @@
 #include "common.h"
 #include "time.h"
 #include "tar_main.h"
+#include "cmdseq.h"
 
 GLFWwindow* g_hWindowMain;
 float		g_fTime;
@@ -147,8 +148,31 @@ void fbuffer_reset(void)
 
 int main(void)
 {
+	// OpenGL context / windowing initialization
+	if( !engine_init() )
+	{
+		engine_quit();
+		return 0;
+	}
+
+	// TODO: make function of commandline args
+	con_setup();
+	cmdseq_reg();
+	
+	engine_newframe();
+	
+	con_run_cfg( "scripts/main.rat" );
+	
+	// Shutdown
+	engine_quit();
+	fs_exit();
+	printf( "tar::exit()\n" );
+	
+	return 0;
+	
+
 	// Gameinfo needs to be set to the main CS:GO installation so it can open vpks and shit. it will open the searchpaths automatically
-	fs_set_gameinfo( "/home/harry/.steam/debian-installation/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
+	fs_set_gameinfo( "/home/harry/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
 	
 	// tar_push_group( <name> ) flags up certain groups to be tracked when building
 	// geometry. Each group registered here, when the vmf is loaded, will create an index 
@@ -158,17 +182,13 @@ int main(void)
 	//
 	// These 'id's are bitmasks. So grp_layout gets: ...0001 and overlap ...0010
 
-	uint32_t grp_layout = tar_push_group( "tar_layout" );
-	uint32_t grp_overlap = tar_push_group( "tar_overlap" );
+	//uint32_t grp_layout = tar_push_group( "tar_layout" );
+	//uint32_t grp_overlap = tar_push_group( "tar_cover" );
 	
 	// tar_setvmf will load up the vmf and any instances. no processing is done yet, except
 	// for baking transforms of instance entities
-	tar_setvmf( "my_map.vmf" );
-	
-	// OpenGL context / windowing initialization
-	if( !engine_init() )
+	if( !tar_setvmf( "testmap.vmf" ) )
 	{
-		engine_quit();
 		return 0;
 	}
 	
@@ -225,11 +245,6 @@ int main(void)
 	render_to_png_flat( 1024, 1024, "test_origin.png" );
 	
 	// =========================================================================
-	
-	// Shutdown
-	engine_quit();
-	fs_exit();
-	printf( "tar::exit()\n" );
 	
 	return 0;
 }

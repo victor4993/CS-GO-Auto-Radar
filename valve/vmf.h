@@ -202,9 +202,9 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 		}
 		
 		sscanf( v, "(%lf %lf %lf) (%lf %lf %lf) (%lf %lf %lf)", 
-			points+0, points+1, points+2,
+			points+6, points+7, points+8,
 			points+3, points+4, points+5,
-			points+6, points+7, points+8 );
+			points+0, points+1, points+2 );
 			
 		glmd_triangle_to_plane( points+0, points+3, points+6, planes +num*4 );
 		
@@ -261,7 +261,7 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 		int valid = 1;
 		for( int m = 0; m < num; m ++ )
 		{
-			if( glmd_plane_polarity( planes+m*4, p ) < -1e-6f )
+			if( glmd_plane_polarity( planes+m*4, p ) > 1e-6f )
 			{
 				valid = 0;
 				break;
@@ -293,6 +293,7 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 			numpoints ++;
 			glm_vec3_add( ctx->verts[ ctx->unVerts+0 ].co, center, center );
 			
+			// i dont remember what this bit does
 			glmd_vec3d_to_vec3( p, ctx->verts[ ctx->unVerts+1 ].co );
 			glmd_vec3d_to_vec3( planes+j*4, ctx->verts[ ctx->unVerts+1 ].nrm );
 			glmd_vec3d_to_vec3( p, ctx->verts[ ctx->unVerts+2 ].co );
