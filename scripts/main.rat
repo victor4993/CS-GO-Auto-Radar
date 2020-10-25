@@ -4,11 +4,28 @@ src_vert shaders/base.vs
 src_frag shaders/gbuffer.fs
 compshader gbuffer
 
+src_vert shaders/screen.vs
+src_frag shaders/screen_texture.fs
+compshader screentex
+
 setgroup 0 tar_layout
 setgroup 1 tar_cover
 
-loadvmf testmap.vmf
+loadvmf my_map.vmf
 
+mkbuffer gbuffer 1024 1024 gbuffer_main
+target gbuffer_main
+
+vmfshader gbuffer
 depth 1
+clear
+render 0
 
-render 0 
+target default
+depth 0
+program screentex
+
+linkfbtex gbuffer_main 0 0 in_Sampler
+drawquad
+
+savepng test.png

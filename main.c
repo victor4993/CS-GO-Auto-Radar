@@ -146,6 +146,15 @@ void fbuffer_reset(void)
 	glViewport( 0, 0, g_nWindowW, g_nWindowH );
 }
 
+// Safe shutdown procedure
+void t_quit(void)
+{
+	fprintf( stderr, "tar::t_quit()\n" );
+
+	glfwTerminate();
+	exit(0);
+}
+
 int main(void)
 {
 	// OpenGL context / windowing initialization

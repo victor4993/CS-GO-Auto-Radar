@@ -8,6 +8,26 @@ typedef struct {
 typedef struct tar_vmf_t tar_vmf_t;
 typedef struct tar_model_t tar_model_t;
 typedef struct tar_shader_t tar_shader_t;
+typedef struct tar_buffer_t tar_buffer_t;
+
+typedef enum
+{
+	k_EBufferType_error,
+	k_EBufferType_gbuffer,
+	k_EBufferType_rgba
+} EBufferType_t;
+
+struct tar_buffer_t
+{
+	char *name;
+	
+	EBufferType_t type;
+	
+	GLuint fb, rb;
+	GLuint textures[3];
+	
+	uint32_t w,h;
+};
 
 // Render model / render instances
 typedef struct 
@@ -79,6 +99,53 @@ uint32_t		num_maps = 0;
 
 tar_model_t *tar_models = NULL;
 tar_shader_t *tar_shaders = NULL;
+tar_buffer_t *tar_buffers = NULL;
+
+void tar_makebuffer( const char *name, EBufferType_t const type, uint32_t const w, uint32_t const h )
+{
+	tar_buffer_t buffer = {
+		.name = malloc( strlen( name ) + 1 ),
+		.type = type
+	};
+	
+	strcpy( buffer.name, name );
+
+	switch( type )
+	{
+		case k_EBufferType_gbuffer:
+		gbuffer_setup( w, h, buffer.textures, &buffer.fb, &buffer.rb );
+		break;
+		
+		default:
+		case k_EBufferType_rgba:
+		break;
+	}
+	
+	sb_push( tar_buffers, buffer );
+}
+
+void fbuffer_reset(void);
+void tar_drawtarget( const char *name )
+{
+	if( !strcmp( name, "default" ) )
+	{
+		fbuffer_reset();
+		return;
+	}
+
+	for( int i = 0; i < sb_count( tar_buffers ); i ++ )
+	{
+		if( !strcmp( name, tar_buffers[i].name ) )
+		{
+			tar_buffer_t *buffer = tar_buffers + i;
+			glBindFramebuffer( GL_FRAMEBUFFER, buffer->fb );
+			glViewport( 0, 0, buffer->w, buffer->h );
+			return;
+		}
+	}
+	
+	fprintf( stderr, "framebuffer '%s' not found.. unexpected results will occur\n", name );
+}
 
 void tar_compile_shader( const char *name, const char *vert, const char *frag )
 {
@@ -103,6 +170,40 @@ tar_shader_t *tar_get_shader( const char *szName )
 	}
 	
 	return NULL;
+}
+
+tar_shader_t *active = NULL;
+void tar_useprogram( tar_shader_t *shader )
+{
+	glUseProgram( shader->shader );
+	active = shader;
+}
+
+void tar_fb_to_sampler( const char *buffer, const uint32_t n, const uint32_t tn, const char *uniform )
+{
+	if( n >= 3 )
+	{
+		fprintf( stderr, "texture out of range\n" );
+		return;
+	}
+
+	for( int i = 0; i < sb_count( tar_buffers ); i ++ )
+	{
+		if( !strcmp( tar_buffers[i].name, buffer ) )
+		{
+			tar_buffer_t *buffer = tar_buffers + i;
+			
+			glBindTexture( GL_TEXTURE_2D, buffer->textures[n] );
+			glActiveTexture( GL_TEXTURE0+tn );
+			glUniform1i( glGetUniformLocation( active->shader, uniform ), tn );
+		}
+	}
+}
+
+void tar_clear(void)
+{
+	glClearColor( 0.f, 0.f, 0.f, 1.f );
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
 // Get model pointer from cache, 0 if not present ( you should set an error model )
@@ -209,8 +310,8 @@ int _tar_loadvmf( const char *szPath )
 	vmap->source = vdf_open_file( szPath );
 	if( !vmap->source )
 	{
-		fprintf( stderr, "\t@tar::loadvmf::vdf_open_file()\n" );
-		return 0;
+		fprintf( stderr, "   @tar::loadvmf::vdf_open_file()\n" );
+		t_quit();
 	}
 	
 	// Name

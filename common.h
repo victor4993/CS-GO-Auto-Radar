@@ -1,3 +1,5 @@
+void t_quit(void);
+
 // C STD
 // ===============================
 #include <stdio.h>
