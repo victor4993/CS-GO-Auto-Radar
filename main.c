@@ -147,45 +147,65 @@ void fbuffer_reset(void)
 
 int main(void)
 {
+	// Gameinfo needs to be set to the main CS:GO installation so it can open vpks and shit. it will open the searchpaths automatically
 	fs_set_gameinfo( "/home/harry/.steam/debian-installation/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
 	
-	
+	// tar_push_group( <name> ) flags up certain groups to be tracked when building
+	// geometry. Each group registered here, when the vmf is loaded, will create an index 
+	// buffer for that respective group so it can be drawn in one go.
+	// 
+	// Models and brushes and other brush entities are treated the exact same way as eachother
+	//
+	// These 'id's are bitmasks. So grp_layout gets: ...0001 and overlap ...0010
+
 	uint32_t grp_layout = tar_push_group( "tar_layout" );
 	uint32_t grp_overlap = tar_push_group( "tar_overlap" );
 	
+	// tar_setvmf will load up the vmf and any instances. no processing is done yet, except
+	// for baking transforms of instance entities
 	tar_setvmf( "my_map.vmf" );
 	
+	// OpenGL context / windowing initialization
 	if( !engine_init() )
 	{
 		engine_quit();
 		return 0;
 	}
 	
+	// Starts and clears context ( needs clean-up since this is old Voyager code )
 	engine_newframe();
 	
+	// Compile shaders here
 	GLuint shader_gbuffer = shader_compile( "shaders/base.vs", "shaders/gbuffer.fs" );
 	GLuint shader_screentex = shader_compile( "shaders/screen.vs", "shaders/screen_texture.fs" );
 	
+	// tar_bake builds vmf geometry into drawable stuff
 	tar_bake();
 	
-	//
+	// Main GBuffer
 	gbuffer_t fb_layout;
 	gbuffer_init( &fb_layout, 1024, 1024 );
 	gbuffer_use( &fb_layout );
 	
+	// Frame clear
 	glClearColor( 0.f, 0.f, 0.f, 1.f );
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	
-	glEnable(GL_DEPTH_TEST);
+	glEnable( GL_DEPTH_TEST );
 	
+	// Renderfiltered 0xFFFFFFF means draw everything basically. 
+	// If you want specific layer (or layers for example: tar_renderfiltered( grp_layout | grp_overlap );
 	tar_setshader( shader_gbuffer );
 	tar_renderfiltered( 0xFFFFFFFF );
 	
+	// Reset framebuffer back to primary window's one
 	fbuffer_reset();
 	glDisable(GL_DEPTH_TEST);
 	
+
+	// This section is just outputting stuff to files
+	// =========================================================================
 	glUseProgram( shader_screentex );
-	
 	glActiveTexture( GL_TEXTURE0 );
 	glUniform1i( glGetUniformLocation( shader_screentex, "in_Sampler" ), 0 );
 	
@@ -204,74 +224,12 @@ int main(void)
 	tar_drawquad();
 	render_to_png_flat( 1024, 1024, "test_origin.png" );
 	
+	// =========================================================================
+	
+	// Shutdown
 	engine_quit();
-	
 	fs_exit();
-	
 	printf( "tar::exit()\n" );
 	
-	return 0;
-}
-
-int __main(void)
-{
-	fs_set_gameinfo( "/home/harry/.steam/debian-installation/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
-	
-	mdl_mesh_t mesh_test;
-	if( mdl_read_fs( "models/weapons/t_arms_anarchist.mdl", &mesh_test ) == k_EMdlLoad_valid )
-	{
-		mdl_to_obj( &mesh_test, "out.obj", "test" );
-		mdl_free( &mesh_test );
-	}
-	
-	fs_exit();
-	return 0;
-
-	if( !engine_init() )
-	{
-		engine_quit();
-		return 0;
-	}
-
-	printf("vmf::load\n");
-	vdf_node_t *vmf = vdf_open_file( "disp.vmf" );
-	
-	printf("vmf::gen\n");
-	
-	solidgen_ctx_t sgen ;
-	solidgen_ctx_init( &sgen );
-	
-	// Pickup brushes from world
-	vdf_node_t *world = vdf_find( vmf, "world" );
-	if( world )
-	{
-		int it = 0; 
-		vdf_node_t *node;
-		while( (node = vdf_iter(world, "solid", &it)) )
-		{
-			if( solidgen_push( &sgen, node ) == k_ESolidResult_errnomem )
-			{
-				//todo: free
-				printf("errnomem\n");
-				break;
-			}
-		}
-	}
-	
-	printf( "Statis: verts(%u), indices(%u)\n", sgen.unVerts, sgen.idx );
-	
-	solidgen_to_obj( &sgen, "test.obj" );
-	
-	solidgen_ctx_free( &sgen );
-	vdf_free( vmf );
-	
-	while( !glfwWindowShouldClose( g_hWindowMain ) )
-	{
-		engine_newframe();
-		engine_endframe();
-	}
-	
-	engine_quit();
-
 	return 0;
 }
