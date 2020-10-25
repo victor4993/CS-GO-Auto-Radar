@@ -46,6 +46,7 @@
 #include "util/files.h"
 #include "util/filebuffer.h"
 #include "util/obj_write.h"
+#include "util/caching_helpers.h"
 
 // Valve
 #include "valve/vpk.h"
@@ -58,3 +59,4 @@
 // My stuff
 #include "shader.h"
 #include "rendering.h"
+#include "console.h"
