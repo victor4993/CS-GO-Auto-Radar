@@ -10,7 +10,9 @@ compshader screentex
 
 setgroup 0 tar_layout
 
-loadvmf my_map.vmf
+addplane 0 0 1 512
+
+loadvmf testmap.vmf
 
 mkbuffer gbuffer 1024 1024 gbuffer_main
 target gbuffer_main

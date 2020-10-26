@@ -247,6 +247,28 @@ CONSOLE_CALL PROC_DRAWQUAD( char ** argv )
 	tar_drawquad();
 }
 
+CONSOLE_CALL PROC_ADD_PLANE( char ** argv )
+{
+	con_parse_start( argv );
+	const double x = con_parse_read_float( argv, 0.f, 0.f, 0.f, 0, "normal[X]" );
+	const double y = con_parse_read_float( argv, 1.f, 0.f, 0.f, 0, "normal[Y] (up)" );
+	const double z = con_parse_read_float( argv, 0.f, 0.f, 0.f, 0, "normal[Z]" );
+	const double d = con_parse_read_float( argv, 0.f, 0.f, 0.f, 0, "distance" );
+	con_end( argv );
+	
+	printf( "Added plane: %lf %lf %lf %lf\n", x,y,z,d );
+	
+	vmf_addbisector( (double[4]){ x, y, z, d } );
+}
+
+CONSOLE_CALL PROC_CLEAR_PLANES( char ** argv )
+{
+	con_parse_start( argv );
+	con_end( argv );
+	
+	vmf_clearbisectors();
+}
+
 void cmdseq_reg(void)
 {
 	con_func_register( "gameinfo", 	PROC_GAMEINFO, 		"set gameinfo.txt path" );
@@ -263,6 +285,8 @@ void cmdseq_reg(void)
 	con_func_register( "program",		PROC_SHADER_USE,		"Use a compiled shader" );
 	con_func_register( "clear",		PROC_CLEAR,				"Clears bound buffer" );
 	con_func_register( "linkfbtex",	PROC_LINKTEX,			"Link framebuffer texture to uniform" );
-	con_func_register( "savepng",		PROC_WRITE,			"Save bound framebuffer to flat png" );
+	con_func_register( "savepng",		PROC_WRITE,				"Save bound framebuffer to flat png" );
 	con_func_register( "drawquad",	PROC_DRAWQUAD,			"Draws ss quad" );
+	con_func_register( "addplane",	PROC_ADD_PLANE,		"Add global plane" );
+	con_func_register( "clrplanes",	PROC_CLEAR_PLANES,	"Clears global planes" );
 }

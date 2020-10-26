@@ -91,6 +91,26 @@ typedef enum
 } ESolidResult_t;
 
 #define SOLID_MAX_SIDES 512
+double vmf_planes[SOLID_MAX_SIDES*4];
+uint32_t vmf_unGlobalPlanes = 0;
+
+// put an extra plane into the planes list
+void vmf_addbisector( double p[4] )
+{
+	double *plane = vmf_planes + vmf_unGlobalPlanes * 4;
+	
+	plane[0] = p[0];
+	plane[1] = p[1];
+	plane[2] = p[2];
+	plane[3] = p[3];
+	
+	vmf_unGlobalPlanes ++;
+}
+
+void vmf_clearbisectors( void )
+{
+	vmf_unGlobalPlanes = 0;
+}
 
 void sort_coplanar( double p[4], solidgen_vert_t *points, uint32_t *idxs, uint32_t unCount )
 {
@@ -179,7 +199,6 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 {
 	ESolidResult_t flag = k_ESolidResult_valid;
 
-	double planes[SOLID_MAX_SIDES*4];
 	uint32_t **polygons = NULL;
 	vdf_node_t **dispinfos = NULL;
 	
@@ -187,7 +206,14 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 	
 	// Extract planes from points to NRM/D format
 	int it = 0; 
-	int num = 0;
+	int num = vmf_unGlobalPlanes;
+	
+	for( int i = 0; i < vmf_unGlobalPlanes; i ++ )
+	{
+		sb_push( dispinfos, NULL );
+		sb_push( polygons, NULL );
+	}
+	
 	vdf_node_t *pSide;
 	while( (pSide = vdf_iter(node, "side", &it)) )
 	{
@@ -206,7 +232,7 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 			points+3, points+4, points+5,
 			points+0, points+1, points+2 );
 			
-		glmd_triangle_to_plane( points+0, points+3, points+6, planes +num*4 );
+		glmd_triangle_to_plane( points+0, points+3, points+6, vmf_planes +num*4 );
 		
 		sb_push( polygons, NULL );
 
@@ -255,13 +281,13 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 		// DO something with i j k
 		double p[3];
 				
-		if( !glmd_plane_intersect( planes+i*4, planes+j*4, planes+k*4, p ) ) goto IL_TWIDDLE;
+		if( !glmd_plane_intersect( vmf_planes+i*4, vmf_planes+j*4, vmf_planes+k*4, p ) ) goto IL_TWIDDLE;
 		
 		// Check for illegal verts
 		int valid = 1;
 		for( int m = 0; m < num; m ++ )
 		{
-			if( glmd_plane_polarity( planes+m*4, p ) > 1e-6f )
+			if( glmd_plane_polarity( vmf_planes+m*4, p ) > 1e-6f )
 			{
 				valid = 0;
 				break;
@@ -287,7 +313,7 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 			
 			// Store point / respecive normal for each plane that triggered the collision
 			glmd_vec3d_to_vec3( p, ctx->verts[ ctx->unVerts+0 ].co );
-			glmd_vec3d_to_vec3( planes+i*4, ctx->verts[ ctx->unVerts+0 ].nrm );
+			glmd_vec3d_to_vec3( vmf_planes+i*4, ctx->verts[ ctx->unVerts+0 ].nrm );
 			
 			// Take the vertex position and add it for centering base on average
 			numpoints ++;
@@ -295,9 +321,9 @@ ESolidResult_t solidgen_push( solidgen_ctx_t *ctx, vdf_node_t *node )
 			
 			// i dont remember what this bit does
 			glmd_vec3d_to_vec3( p, ctx->verts[ ctx->unVerts+1 ].co );
-			glmd_vec3d_to_vec3( planes+j*4, ctx->verts[ ctx->unVerts+1 ].nrm );
+			glmd_vec3d_to_vec3( vmf_planes+j*4, ctx->verts[ ctx->unVerts+1 ].nrm );
 			glmd_vec3d_to_vec3( p, ctx->verts[ ctx->unVerts+2 ].co );
-			glmd_vec3d_to_vec3( planes+k*4, ctx->verts[ ctx->unVerts+2 ].nrm );
+			glmd_vec3d_to_vec3( vmf_planes+k*4, ctx->verts[ ctx->unVerts+2 ].nrm );
 			
 			sb_push( polygons[i], ctx->unVerts );
 			sb_push( polygons[j], ctx->unVerts + 1 );
@@ -333,15 +359,18 @@ IL_TWIDDLE:
 	{
 		if( sb_count(polygons[i]) < 3 )
 		{
-			flag = k_ESolidResult_degenerate;
-			fprintf( stderr, "Skipping degenerate face\n" );
+			if( !vmf_unGlobalPlanes )
+			{
+				flag = k_ESolidResult_degenerate;
+				fprintf( stderr, "Skipping degenerate face\n" );
+			}
 			continue;
 		}
 		
 		// Sort only if there is no displacements, or if this side is
 		if( !bDisplaced || (bDisplaced && dispinfos[ i ]) )
 		{
-			sort_coplanar( planes+i*4, ctx->verts, polygons[i], sb_count(polygons[i]) );
+			sort_coplanar( vmf_planes+i*4, ctx->verts, polygons[i], sb_count(polygons[i]) );
 		}
 		
 		if( bDisplaced )
@@ -351,8 +380,13 @@ IL_TWIDDLE:
 			{
 				if( sb_count( polygons[i] ) != 4 )
 				{
-					flag = k_ESolidResult_degenerate;
-					fprintf( stderr, "Skipping degenerate displacement\n" );
+					// Mute error if we have global planes cause they
+					// are of course gonna fuck things up here
+					if( !vmf_unGlobalPlanes )
+					{
+						flag = k_ESolidResult_degenerate;
+						fprintf( stderr, "Skipping degenerate displacement\n" );
+					}
 					continue;
 				}
 			

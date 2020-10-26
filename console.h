@@ -355,7 +355,27 @@ void execute_console_input( const char *strInput )
 	else if( funcDef->ptrCVARFUNC ) ((void(*)(char**, void*))funcDef->ptrCVARFUNC)(&pChrHead, funcDef->ptrCVARDATA);
 }
 
+CONSOLE_CALL con_std_doc( char **argv )
+{
+	con_parse_start( argv );
+	con_end( argv );
+	
+	con_func_definition *pfunc = temp_conlib;
+	
+	while( (pfunc->ptrFunc || pfunc->ptrCVARFUNC) )
+	{
+		printf( "\n#%s \"%s\"\n", pfunc->strName, pfunc->strDescription );
+		for( int i = 0; i < sb_count( pfunc->strParamInfo ); i ++ )
+		{
+			printf( "%i: %s\n", i, pfunc->strParamInfo[i] );
+		}
+
+		pfunc++;
+	}
+}
+
 void con_setup(void)
 {
 	con_func_register( "exec", con_std_exec_cfg, "execute script file (.rat)" );
+	con_func_register( "docall", con_std_doc, "Write out some documentation for every registered command" );
 }
