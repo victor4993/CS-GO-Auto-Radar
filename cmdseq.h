@@ -33,7 +33,11 @@ CONSOLE_CALL PROC_LOADVMF( char ** argv )
 		// TODO: Use this code path to load the map from args
 	}
 	
-	tar_setvmf( path );
+	if( !tar_setvmf( path ) )
+	{
+		t_quit();
+	}
+	
 	tar_bake();
 }
 

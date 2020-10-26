@@ -105,7 +105,9 @@ void tar_makebuffer( const char *name, EBufferType_t const type, uint32_t const 
 {
 	tar_buffer_t buffer = {
 		.name = malloc( strlen( name ) + 1 ),
-		.type = type
+		.type = type,
+		.w = w,
+		.h = h
 	};
 	
 	strcpy( buffer.name, name );
@@ -129,6 +131,7 @@ void tar_drawtarget( const char *name )
 {
 	if( !strcmp( name, "default" ) )
 	{
+		printf( "framebuffer reset\n" );
 		fbuffer_reset();
 		return;
 	}
@@ -193,11 +196,15 @@ void tar_fb_to_sampler( const char *buffer, const uint32_t n, const uint32_t tn,
 		{
 			tar_buffer_t *buffer = tar_buffers + i;
 			
-			glBindTexture( GL_TEXTURE_2D, buffer->textures[n] );
 			glActiveTexture( GL_TEXTURE0+tn );
+			glBindTexture( GL_TEXTURE_2D, buffer->textures[n] );
 			glUniform1i( glGetUniformLocation( active->shader, uniform ), tn );
+			
+			return;
 		}
 	}
+	
+	fprintf( stderr, "buffer not found\n" );
 }
 
 void tar_clear(void)

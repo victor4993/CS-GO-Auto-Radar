@@ -178,10 +178,19 @@ int main(void)
 	printf( "tar::exit()\n" );
 	
 	return 0;
-	
+
+
+
+
+
+	if( !engine_init() )
+	{
+		engine_quit();
+		return 0;
+	}
 
 	// Gameinfo needs to be set to the main CS:GO installation so it can open vpks and shit. it will open the searchpaths automatically
-	fs_set_gameinfo( "/home/harry/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
+	fs_set_gameinfo( "/home/harry/.steam/debian-installation/steamapps/common/Counter-Strike Global Offensive/csgo/gameinfo.txt" );
 	
 	// tar_push_group( <name> ) flags up certain groups to be tracked when building
 	// geometry. Each group registered here, when the vmf is loaded, will create an index 
@@ -194,9 +203,11 @@ int main(void)
 	//uint32_t grp_layout = tar_push_group( "tar_layout" );
 	//uint32_t grp_overlap = tar_push_group( "tar_cover" );
 	
+	tar_set_group( 0, "tar_layout" );
+	
 	// tar_setvmf will load up the vmf and any instances. no processing is done yet, except
 	// for baking transforms of instance entities
-	if( !tar_setvmf( "testmap.vmf" ) )
+	if( !tar_setvmf( "my_map.vmf" ) )
 	{
 		return 0;
 	}

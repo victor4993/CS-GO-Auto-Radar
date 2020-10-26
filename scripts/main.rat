@@ -9,7 +9,6 @@ src_frag shaders/screen_texture.fs
 compshader screentex
 
 setgroup 0 tar_layout
-setgroup 1 tar_cover
 
 loadvmf my_map.vmf
 
@@ -19,7 +18,7 @@ target gbuffer_main
 vmfshader gbuffer
 depth 1
 clear
-render 0
+render
 
 target default
 depth 0
@@ -27,5 +26,12 @@ program screentex
 
 linkfbtex gbuffer_main 0 0 in_Sampler
 drawquad
+savepng 1024 1024 test_pos.png
 
-savepng test.png
+linkfbtex gbuffer_main 1 0 in_Sampler
+drawquad
+savepng 1024 1024 test_normal.png
+
+linkfbtex gbuffer_main 2 0 in_Sampler
+drawquad
+savepng 1024 1024 test_origin.png
